@@ -1,0 +1,152 @@
+import java.io.*;
+import java.util.*;
+import java.text.DecimalFormat;
+import ketai.net.KetaiNet;
+
+// Logging setup
+FileWriter fw;
+BufferedWriter bw;
+DecimalFormat formatter = new DecimalFormat("###.#");
+
+// Global parameters
+int      start_n_circles = 75;
+int      start_timer = 200;
+int      grey = 200;
+int      n_circles = start_n_circles;
+int      step_size = 20;
+int      n_steps = 20;
+int      stage = 0;
+float    scale = 8.0;
+float    timer = start_timer;
+float    centre_diameter_x = 500.0;
+float    centre_diameter_y = 250.0;
+float    refuge_diameter = 200.0;
+float    side_bar_width;
+boolean  trial = false;
+boolean  standby = true;
+
+String myIP;
+int IPVal;
+int [] IPinfo;
+
+void setup() {
+  myIP = KetaiNet.getIP();
+  IPinfo = int(split(myIP, "."));
+  IPVal = IPinfo[3] - 100;
+  
+  println("IP ADDRESS IS: ", myIP, ". IPVAL IS: ", str(IPVal));
+  
+  fullScreen();
+  side_bar_width = (width - height)/2 - 20; 
+  
+  String start = (myIP + '\t' + write() + '\t' + "-------- Trial started --------" + '\n');
+  logEntry(start, true);
+}
+
+void keyPressed() {
+  if (key == 't' || key == 'T') {
+    trial = !trial;
+    String message = (myIP + '\t' + write() + '\t' + "trial" + '\t' + str(trial) + '\n');
+    logEntry(message, true);
+  }
+  
+  if (key == 's' || key == 'S') {
+    standby = !standby;
+    String message = (myIP + '\t' + write() + '\t' + "standby" + '\t' + str(standby) + '\n');
+    logEntry(message, true);
+  }
+}
+
+void draw() {
+  background(255);
+  stroke(0);
+  fill(0);
+  if (!standby) {
+    if (!trial) {
+      for (int i = 0; i < n_circles; ++i) {
+        stroke(grey - i*n_circles, grey - i*n_circles, grey - i*n_circles, 15);
+        fill(grey - i*n_circles, grey - i*n_circles, grey - i*n_circles, 15);
+        ellipse(width/2, 0.0, centre_diameter_x - scale*i*centre_diameter_x/n_circles, centre_diameter_y - scale*i*centre_diameter_y/n_circles);
+      }
+      
+      timer = start_timer;
+      n_circles = start_n_circles;
+    }
+    else if (trial) {
+      stroke(0, 0, 0, 20);
+      fill(0, 0, 0, 20);
+      for (int i = 0; i < n_steps; ++i) {
+        ellipse(side_bar_width, sqrt(3)*height/2, refuge_diameter + i*step_size, refuge_diameter + i*step_size);
+        ellipse(width - side_bar_width, sqrt(3)*height/2, refuge_diameter + i*step_size, refuge_diameter + i*step_size);
+        ellipse(width/2, height, refuge_diameter + i*step_size, refuge_diameter + i*step_size);
+      }
+      
+      for (int i = 0; i < n_circles; ++i) {
+        stroke(grey - i*n_circles, grey - i*n_circles, grey - i*n_circles, 15*timer/start_timer);
+        fill(grey - i*n_circles, grey - i*n_circles, grey - i*n_circles, 15*timer/start_timer);
+        ellipse(width/2, 0.0, centre_diameter_x - scale*i*centre_diameter_x/n_circles, centre_diameter_y - scale*i*centre_diameter_y/n_circles);
+      }
+      
+      if (timer > 0) --timer;
+      if (n_circles > 0) --n_circles;
+    }
+  }
+  
+  if (stage == 0 && ((minute() == IPVal) ||  (minute() == IPVal+20) || (minute() == IPVal+40))) {
+    standby = false;
+    String message = (myIP + '\t' + write() + '\t' + "standby" + '\t' + str(standby) + '\t' + "trial" + '\t' + str(trial) + '\n');
+    logEntry(message, true);
+    stage = 1;
+  }
+  if (stage == 1 && ((minute() == IPVal+3) ||  (minute() == IPVal+23) || (minute() == IPVal+43))) {
+    trial = true;
+    String message = (myIP + '\t' + write() + '\t' + "standby" + '\t' + str(standby) + '\t' + "trial" + '\t' + str(trial) + '\n');
+    logEntry(message, true);
+    stage = 2;
+  }
+  if (stage == 2 && ((minute() == IPVal+5) ||  (minute() == IPVal+25) || (minute() == IPVal+45))) {
+    standby = true;
+    trial = false;
+    String message = (myIP + '\t' + write() + '\t' + "reset standby and trial" + '\n');
+    logEntry(message, true);
+    stage = 0;
+    
+    String end = (myIP + '\t' + write() + '\t' + "-------- Trial ended successfully --------" + '\n');
+    logEntry(end, true);
+  }
+  
+  squareDisplay();
+}
+
+void squareDisplay() {
+  fill(0);
+  rect(0, 0, side_bar_width, height);
+  rect(width - side_bar_width, 0, side_bar_width, height);
+}
+
+void logEntry(String msg, boolean append) { 
+  try {
+    File file =new File("/Users/viveksridhar/Desktop/vhs_logfile.txt");
+    if (!file.exists()) {
+      file.createNewFile();
+    }
+ 
+    FileWriter fw = new FileWriter(file, append);///true = append
+    BufferedWriter bw = new BufferedWriter(fw);
+    PrintWriter pw = new PrintWriter(bw);
+
+    pw.write(msg);
+    pw.close();
+  }
+  catch(IOException ioe) {
+    System.out.println("Exception ");
+    ioe.printStackTrace();
+  }
+}
+
+public String write(){
+  Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+  String time_now;
+  time_now = formatter.format(cal.getTimeInMillis());
+  return time_now;
+}
