@@ -11,17 +11,19 @@ DecimalFormat formatter = new DecimalFormat("###.#");
 // Global parameters
 int      start_n_circles = 75;         // ncircles reset value
 int      start_timer = 200;            // timer reset value
+int      start_loom_dist = 10000;      // loom_dist reset value
 int      grey = 200;                   // parameter for colour of start and choice locations
 int      n_circles = start_n_circles;  // number of circles to create gradient in start ellipse
-int      step_size = 200;              // difference in circle diameters for choice circles 
-int      n_steps = 20;                 // number of circles to create gradient in choice circles
 int      stage = 0;                    // 0 = standby; 1 = trial start; 2 = choice experiment
 float    scale = 8.0;                  // scales the size of the start ellipse
 float    timer = start_timer;          // timer for start ellipse to disappear
 float    centre_diameter_x = 500.0;    // major axis of start ellipse
 float    centre_diameter_y = 250.0;    // minor axis of start ellipse
-float    refuge_diameter = 200.0;      // diameter of choice refuges
 float    side_bar_width;               // black bars to ensure squareness of frame
+float    loom_size = 10000.0;          // size of approaching loom (remains const)
+float    loom_dist = start_loom_dist;  // start distance of loom
+float    loom_speed = 30.0;            // speed of approaching loom
+float    loom_diameter = 2*loom_size / loom_dist;
 boolean  trial = false;                // boolean to toggle trial start-stop
 boolean  standby = true;               // boolean to toggle standby
 
@@ -75,11 +77,6 @@ void draw() {
     else if (trial) {
       stroke(0, 0, 0, 20);
       fill(0, 0, 0, 20);
-      for (int i = 0; i < n_steps; ++i) {
-        ellipse(side_bar_width, sqrt(3)*height/2, refuge_diameter + i*step_size, refuge_diameter + i*step_size);
-        ellipse(width - side_bar_width, sqrt(3)*height/2, refuge_diameter + i*step_size, refuge_diameter + i*step_size);
-        ellipse(width/2, height, refuge_diameter + i*step_size, refuge_diameter + i*step_size);
-      }
       
       for (int i = 0; i < n_circles; ++i) {
         stroke(grey - i*n_circles, grey - i*n_circles, grey - i*n_circles, 15*timer/start_timer);
@@ -87,8 +84,20 @@ void draw() {
         ellipse(width/2, 0.0, centre_diameter_x - scale*i*centre_diameter_x/n_circles, centre_diameter_y - scale*i*centre_diameter_y/n_circles);
       }
       
+      stroke(0);
+      fill(0);
+      ellipse(side_bar_width/2 + width/4, 3*height/4, loom_diameter, loom_diameter);
+      
       if (timer > 0) --timer;
       if (n_circles > 0) --n_circles;
+      if (loom_dist > 10.0) loom_dist -= loom_speed;
+      if (loom_dist <= 10.0) {
+        loom_dist = start_loom_dist;
+        standby = true;
+        trial = false;
+      }
+      
+      loom_diameter = loom_size / loom_dist; 
     }
   }
   
